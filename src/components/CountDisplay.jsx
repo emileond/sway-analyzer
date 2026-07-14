@@ -97,13 +97,55 @@ export default function CountDisplay({ countSummary }) {
         </div>
 
         {/* Bet Recommendation */}
-        <div className="flex items-center justify-between rounded-md border border-border/30 px-3 py-2">
-          <span className="text-[10px] uppercase tracking-wider text-muted">
-            Bet Sizing
-          </span>
-          <Chip color={recommendation.color} size="sm" variant="soft">
-            {recommendation.label}
-          </Chip>
+        <div className="flex flex-col gap-2 rounded-md border border-border/30 px-3 py-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] uppercase tracking-wider text-muted">
+              Bet Sizing
+            </span>
+            <Chip color={recommendation.color} size="sm" variant="soft">
+              {recommendation.label}
+            </Chip>
+          </div>
+
+          {/* Visual bet meter */}
+          <div className="flex items-center gap-1">
+            {Array.from({ length: 8 }, (_, i) => {
+              const filled = i < recommendation.units;
+              return (
+                <div
+                  key={i}
+                  className={`h-2.5 flex-1 rounded-sm transition-all duration-300 ${
+                    filled
+                      ? `bg-${recommendation.color}`
+                      : "bg-surface-secondary"
+                  }`}
+                  style={
+                    filled
+                      ? {
+                          backgroundColor: `var(--color-${recommendation.color === "default" ? "neutral, #64748b" : recommendation.color})`,
+                        }
+                      : undefined
+                  }
+                />
+              );
+            })}
+          </div>
+
+          {/* Next tier hint */}
+          {recommendation.nextThreshold !== null ? (
+            <div className="flex items-center gap-1.5 text-[10px] text-muted">
+              <span className="inline-block w-1 h-1 rounded-full bg-warning animate-pulse" />
+              <span>
+                → {recommendation.nextLabel} at TC&nbsp;≥&nbsp;
+                {recommendation.nextThreshold >= 0 ? "+" : ""}
+                {recommendation.nextThreshold}
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 text-[10px] text-success font-medium">
+              <span>Maximum bet — top tier reached</span>
+            </div>
+          )}
         </div>
 
         {/* Deck Penetration */}

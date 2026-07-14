@@ -149,7 +149,7 @@ function getCountInsight(trueCount, trend, risk) {
   if (tc >= 4) {
     return {
       type: "opportunity",
-      label: `High true count (+${tc}). Player edge ~${((tc * 0.5 - 0.5)).toFixed(1)}%. Maximum bet recommended.`,
+      label: `High true count (+${tc}). Player edge ~${((tc * 0.26 - 0.5)).toFixed(1)}%. Maximum bet recommended.`,
     };
   }
   if (risk === "High" && tc >= 2) {

@@ -1,6 +1,6 @@
 /**
- * CardInput – Visual card selection grid for blackjack.
- * Users tap cards as they are dealt. Cards are tinted by count impact.
+ * CardInput – Card selection with quick-deal categories + full grid.
+ * Result buttons live directly below for a fluid deal→result flow.
  */
 import { Button } from "@heroui/react";
 import { encodeCard } from "../lib/blackjackEngine";
@@ -20,6 +20,13 @@ function getCountTint(rank) {
   return "ring-border/30 bg-surface-secondary/30";
 }
 
+function getCountBadgeColor(rank) {
+  const v = encodeCard(rank);
+  if (v > 0) return "text-success";
+  if (v < 0) return "text-danger";
+  return "text-muted";
+}
+
 function getCountBadge(rank) {
   const v = encodeCard(rank);
   if (v > 0) return "+1";
@@ -27,26 +34,34 @@ function getCountBadge(rank) {
   return "0";
 }
 
-function getCountBadgeColor(rank) {
-  const v = encodeCard(rank);
-  if (v > 0) return "success";
-  if (v < 0) return "danger";
-  return "default";
-}
+/**
+ * Quick-deal categories for fast counting.
+ * These are the most common actions — in counting you mostly track
+ * low vs neutral vs high cards.
+ */
+const QUICK_DEALS = [
+  { label: "Low", sublabel: "2-6", card: "5♠", tint: "success" },
+  { label: "Neutral", sublabel: "7-9", card: "8♠", tint: "default" },
+  { label: "10/Face", sublabel: "10 K Q J", card: "10♠", tint: "danger" },
+  { label: "Ace", sublabel: "A", card: "A♠", tint: "danger" },
+];
 
-export default function CardInput({ onDealCard, onUndo, roundCards = [], disabled = false }) {
+export default function CardInput({ onDealCard, onUndo, onResult, roundCards = [] }) {
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       {/* Dealt cards strip */}
       {roundCards.length > 0 && (
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <span className="text-[10px] uppercase tracking-wider text-muted font-semibold">
-              Dealt this round ({roundCards.length})
+              Dealt this hand ({roundCards.length})
             </span>
-            <Button size="sm" variant="secondary" className="h-6 px-2 text-[10px]" onPress={onUndo}>
-              Undo
-            </Button>
+            <button
+              onClick={onUndo}
+              className="text-[10px] text-muted hover:text-foreground transition-colors cursor-pointer"
+            >
+              Undo last
+            </button>
           </div>
           <div className="flex flex-wrap gap-1.5 min-h-[36px] p-2 rounded-lg bg-surface-secondary/30 border border-border/30">
             {roundCards.map((card, i) => (
@@ -56,37 +71,95 @@ export default function CardInput({ onDealCard, onUndo, roundCards = [], disable
         </div>
       )}
 
-      {/* Card grid */}
-      <div className="grid grid-cols-13 gap-1">
-        {RANKS.map((rank) => (
-          <div key={rank} className="flex flex-col items-center gap-1">
-            <span
-              className={`text-[9px] font-bold px-1 py-0.5 rounded ${getCountTint(rank)}`}
+      {/* Quick-deal buttons */}
+      <div className="flex flex-col gap-2">
+        <span className="text-[10px] uppercase tracking-wider text-muted font-semibold">
+          Quick Deal
+        </span>
+        <div className="grid grid-cols-4 gap-2">
+          {QUICK_DEALS.map(({ label, sublabel, card, tint }) => (
+            <button
+              key={label}
+              onClick={() => onDealCard(card)}
+              className={`flex flex-col items-center gap-0.5 py-2.5 px-2 rounded-lg border transition-all
+                hover:scale-105 active:scale-95 cursor-pointer
+                ${tint === "success"
+                  ? "border-success/30 bg-success/5 hover:bg-success/10"
+                  : tint === "danger"
+                    ? "border-danger/30 bg-danger/5 hover:bg-danger/10"
+                    : "border-border/30 bg-surface-secondary/30 hover:bg-surface-secondary/50"
+                }`}
             >
-              <span className={`font-mono ${getCountBadgeColor(rank) === "success" ? "text-success" : getCountBadgeColor(rank) === "danger" ? "text-danger" : "text-muted"}`}>
-                {getCountBadge(rank)}
+              <span className="text-sm font-bold leading-none">{label}</span>
+              <span className="text-[9px] text-muted leading-none">{sublabel}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Full card grid */}
+      <div className="flex flex-col gap-2">
+        <span className="text-[10px] uppercase tracking-wider text-muted font-semibold">
+          Full Grid
+        </span>
+        <div className="grid grid-cols-13 gap-1">
+          {RANKS.map((rank) => (
+            <div key={rank} className="flex flex-col items-center gap-1">
+              <span className={`text-[8px] font-bold px-1 py-0.5 rounded ${getCountTint(rank)}`}>
+                <span className={`font-mono ${getCountBadgeColor(rank)}`}>
+                  {getCountBadge(rank)}
+                </span>
               </span>
-            </span>
-            {SUITS.map(({ symbol, color }) => (
-              <button
-                key={`${rank}-${symbol}`}
-                disabled={disabled}
-                onClick={() => onDealCard(`${rank}${symbol}`)}
-                className={`w-7 h-9 sm:w-8 sm:h-10 rounded-md border border-border/50 flex flex-col items-center justify-center
-                  transition-all duration-150 hover:scale-110 hover:shadow-md
-                  active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed
-                  ${getCountTint(rank)} cursor-pointer`}
-              >
-                <span className={`text-[10px] sm:text-xs font-bold leading-none ${color}`}>
-                  {rank}
-                </span>
-                <span className={`text-[8px] sm:text-[10px] leading-none ${color}`}>
-                  {symbol}
-                </span>
-              </button>
-            ))}
-          </div>
-        ))}
+              {SUITS.map(({ symbol, color }) => (
+                <button
+                  key={`${rank}-${symbol}`}
+                  onClick={() => onDealCard(`${rank}${symbol}`)}
+                  className={`w-7 h-9 sm:w-8 sm:h-10 rounded-md border border-border/50 flex flex-col items-center justify-center
+                    transition-all duration-150 hover:scale-110 hover:shadow-md
+                    active:scale-95 cursor-pointer
+                    ${getCountTint(rank)}`}
+                >
+                  <span className={`text-[10px] sm:text-xs font-bold leading-none ${color}`}>
+                    {rank}
+                  </span>
+                  <span className={`text-[8px] sm:text-[10px] leading-none ${color}`}>
+                    {symbol}
+                  </span>
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Result buttons — always visible */}
+      <div className="flex flex-col gap-2 border-t border-border/30 pt-4">
+        <span className="text-[10px] uppercase tracking-wider text-muted font-semibold">
+          Round Result
+        </span>
+        <div className="flex gap-2">
+          <Button
+            variant="primary"
+            className="flex-1 h-12 text-sm font-semibold"
+            onPress={() => onResult("A")}
+          >
+            Win
+          </Button>
+          <Button
+            variant="danger"
+            className="flex-1 h-12 text-sm font-semibold"
+            onPress={() => onResult("B")}
+          >
+            Loss
+          </Button>
+          <Button
+            variant="secondary"
+            className="flex-1 h-12 text-sm"
+            onPress={() => onResult("Tie")}
+          >
+            Push
+          </Button>
+        </div>
       </div>
 
       {/* Legend */}

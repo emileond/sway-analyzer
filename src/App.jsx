@@ -9,9 +9,7 @@ import {
   getInsuranceDecision,
   getNextDeviationThreshold,
 } from "./lib/blackjackEngine";
-import {
-  updateEngine,
-} from "./lib/trendEngine";
+import { updateEngine } from "./lib/trendEngine";
 import ControlPanel from "./components/ControlPanel";
 import StickyScoreBar from "./components/StickyScoreBar";
 import TrendGauge from "./components/TrendGauge";
@@ -23,23 +21,15 @@ import CountDisplay from "./components/CountDisplay";
 import StrategyPanel from "./components/StrategyPanel";
 
 function App() {
-  // ── Config ──
   const [alpha, setAlpha] = useState(0.25);
   const [totalDecks, setTotalDecks] = useState(6);
   const [configOpen, setConfigOpen] = useState(false);
 
-  // ── Shoe (card counting) state ──
   const [shoeState, setShoeState] = useState(() => initShoeState(6));
-
-  // ── Current round state ──
   const [roundCards, setRoundCards] = useState([]);
-  const [showingResult, setShowingResult] = useState(false);
-
-  // ── Trend engine state ──
   const [engineState, setEngineState] = useState({});
   const [history, setHistory] = useState([]);
 
-  // ── Derived: count summary ──
   const countSummary = useMemo(() => getCountSummary(shoeState), [shoeState]);
   const activeDeviations = useMemo(
     () => getActiveDeviations(shoeState.trueCount),
@@ -54,21 +44,16 @@ function App() {
     [shoeState.trueCount],
   );
 
-  // ── Derived: trend values ──
   const trend = engineState.trendSlow ?? 0;
   const momentum = engineState.velocity ?? 0;
   const volatility = engineState.volatility ?? 0;
   const fatigue = engineState.fatigue ?? 0;
   const reversalProb = engineState.reversalProb ?? 0;
 
-  // ── Card dealing ──
-  const handleDealCard = useCallback(
-    (card) => {
-      setShoeState((prev) => updateShoeState(prev, card));
-      setRoundCards((prev) => [...prev, card]);
-    },
-    [],
-  );
+  const handleDealCard = useCallback((card) => {
+    setShoeState((prev) => updateShoeState(prev, card));
+    setRoundCards((prev) => [...prev, card]);
+  }, []);
 
   const handleUndoCard = useCallback(() => {
     setRoundCards((prev) => {
@@ -79,18 +64,6 @@ function App() {
     });
   }, []);
 
-  // ── Phase transitions ──
-  const handleDoneDealing = useCallback(() => {
-    if (roundCards.length === 0) return;
-    setShowingResult(true);
-  }, [roundCards.length]);
-
-  const handleNewRound = useCallback(() => {
-    setRoundCards([]);
-    setShowingResult(false);
-  }, []);
-
-  // ── Round result ──
   const handleResult = useCallback(
     (result) => {
       const newState = updateEngine(engineState, result, {
@@ -98,7 +71,6 @@ function App() {
         alphaSlow: alpha * 0.6,
       });
       setEngineState(newState);
-
       setHistory((prev) => [
         ...prev,
         {
@@ -110,19 +82,14 @@ function App() {
           cardsDealt: roundCards.length,
         },
       ]);
-
-      // Reset for next round
       setRoundCards([]);
-      setShowingResult(false);
     },
     [engineState, alpha, shoeState.trueCount, shoeState.runningCount, roundCards.length],
   );
 
-  // ── Reset / New Shoe ──
   const handleReset = useCallback(() => {
     setShoeState(initShoeState(totalDecks));
     setRoundCards([]);
-    setShowingResult(false);
     setEngineState({});
     setHistory([]);
     setConfigOpen(false);
@@ -131,101 +98,68 @@ function App() {
   const handleNewShoe = useCallback(() => {
     setShoeState(initShoeState(totalDecks));
     setRoundCards([]);
-    setShowingResult(false);
   }, [totalDecks]);
 
   const handleDeckChange = useCallback((decks) => {
     setTotalDecks(decks);
     setShoeState(initShoeState(decks));
     setRoundCards([]);
-    setShowingResult(false);
   }, []);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="mx-auto max-w-6xl px-4 py-8 flex flex-col gap-6">
-        {/* ── Header ── */}
+        {/* Header */}
         <header className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-1">
             <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
               Blackjack Trend &amp; Count Analyzer
             </h1>
             <p className="text-xs text-muted max-w-xl leading-relaxed">
-              Tracks card count with Hi-Lo system and player win/loss trends via EWMA.
+              Tracks card count with Zen Count (Level 2) and player win/loss trends via EWMA.
               Visualises advantage zones, strategy deviations, and streak reversion.
             </p>
           </div>
-
           <Popover isOpen={configOpen} onOpenChange={setConfigOpen}>
             <Button isIconOnly variant="secondary" aria-label="Settings">
               <SettingsIcon />
             </Button>
             <Popover.Content className="w-80">
-              <Popover.Dialog>
-                <Popover.Heading>Configuration</Popover.Heading>
-                <ControlPanel
-                  alpha={alpha}
-                  onAlphaChange={setAlpha}
-                  onReset={handleReset}
-                  onNewShoe={handleNewShoe}
-                  roundCount={history.length}
-                  totalDecks={totalDecks}
-                  onDeckChange={handleDeckChange}
-                />
-              </Popover.Dialog>
+              <Popover.Heading>Configuration</Popover.Heading>
+              <ControlPanel
+                alpha={alpha}
+                onAlphaChange={setAlpha}
+                onReset={handleReset}
+                onNewShoe={handleNewShoe}
+                roundCount={history.length}
+                totalDecks={totalDecks}
+                onDeckChange={handleDeckChange}
+              />
             </Popover.Content>
           </Popover>
         </header>
 
-        {/* ── Sticky Scoreboard ── */}
-        <StickyScoreBar
-          history={history}
-          onResult={handleResult}
-          showingResult={showingResult}
-          roundCards={roundCards}
-          onDealCard={handleDealCard}
-          onUndo={handleUndoCard}
-        />
+        {/* Session Stats */}
+        <SessionStats history={history} countSummary={countSummary} />
 
-        {/* ── Card Input + Count Display ── */}
+        {/* Sticky Scoreboard */}
+        <StickyScoreBar history={history} />
+
+        {/* Card Input + Count Display */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="gap-4">
             <Card.Header>
-              <Card.Title className="text-sm flex items-center justify-between">
-                Card Input
-                {!showingResult && roundCards.length > 0 && (
-                  <Button
-                    size="sm"
-                    variant="primary"
-                    className="h-7 px-3 text-xs"
-                    onPress={handleDoneDealing}
-                  >
-                    Done Dealing →
-                  </Button>
-                )}
-                {showingResult && (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="h-7 px-3 text-xs"
-                    onPress={handleNewRound}
-                  >
-                    ← New Round
-                  </Button>
-                )}
-              </Card.Title>
+              <Card.Title className="text-sm">Deal Cards &amp; Log Result</Card.Title>
               <Card.Description className="text-xs">
-                {showingResult
-                  ? "Select the round result below, then deal again"
-                  : "Tap cards as they are dealt. Count updates live."}
+                Tap cards as they are dealt, then pick the round result.
               </Card.Description>
             </Card.Header>
             <Card.Content>
               <CardInput
                 onDealCard={handleDealCard}
                 onUndo={handleUndoCard}
+                onResult={handleResult}
                 roundCards={roundCards}
-                disabled={showingResult}
               />
             </Card.Content>
           </Card>
@@ -241,7 +175,7 @@ function App() {
           </div>
         </div>
 
-        {/* ── Trend Gauge + Status ── */}
+        {/* Trend Gauge + Status */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="gap-3">
             <Card.Header>
@@ -263,18 +197,69 @@ function App() {
           />
         </div>
 
-        {/* ── Trend Trajectory ── */}
+        {/* Trend Trajectory */}
         <TrendTrajectory history={history} />
 
         <Separator />
 
-        {/* ── History ── */}
+        {/* History */}
         <HistoryTable history={history} />
 
-        {/* ── Footer ── */}
         <footer className="text-center text-xs text-muted py-4">
-          Educational tool — Hi-Lo card counting and EWMA trend analysis for blackjack.
+          Educational tool — Zen Count card counting and EWMA trend analysis for blackjack.
         </footer>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Compact session stats bar showing key metrics at a glance.
+ */
+function SessionStats({ history, countSummary }) {
+  if (history.length === 0) return null;
+
+  const wins = history.filter((h) => h.result === "A").length;
+  const losses = history.filter((h) => h.result === "B").length;
+  const total = history.length;
+  const winRate = Math.round((wins / total) * 100);
+
+  // Simple expected P/L: wins = +1, losses = -1, pushes = 0
+  const netResult = wins - losses;
+  const avgTrueCountAtResult =
+    history.reduce((sum, h) => sum + (h.trueCount ?? 0), 0) / total;
+
+  return (
+    <div className="flex flex-wrap items-center gap-4 rounded-lg border border-border/30 bg-surface-secondary/20 px-4 py-2.5 text-xs">
+      <div className="flex items-center gap-1.5">
+        <span className="text-muted">Hands:</span>
+        <span className="font-semibold tabular-nums">{total}</span>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <span className="text-muted">Win Rate:</span>
+        <span className={`font-semibold tabular-nums ${winRate >= 50 ? "text-success" : winRate < 45 ? "text-danger" : "text-muted"}`}>
+          {winRate}%
+        </span>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <span className="text-muted">Net:</span>
+        <span className={`font-semibold tabular-nums ${netResult > 0 ? "text-success" : netResult < 0 ? "text-danger" : "text-muted"}`}>
+          {netResult > 0 ? "+" : ""}{netResult}
+        </span>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <span className="text-muted">Avg TC:</span>
+        <span className="font-semibold tabular-nums font-mono">
+          {avgTrueCountAtResult >= 0 ? "+" : ""}{avgTrueCountAtResult.toFixed(1)}
+        </span>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <span className="text-muted">Current TC:</span>
+        <span className={`font-semibold tabular-nums font-mono ${
+          countSummary.trueCount >= 2 ? "text-success" : countSummary.trueCount <= -1 ? "text-danger" : "text-muted"
+        }`}>
+          {countSummary.trueCount >= 0 ? "+" : ""}{countSummary.trueCount}
+        </span>
       </div>
     </div>
   );
