@@ -134,6 +134,100 @@ function classifyOscillatorTrend(state) {
   return "Neutral / Choppy";
 }
 
+// ── UI Helper Exports ───────────────────────────────────────────────
+
+/**
+ * Compute streak from history array.
+ * Positive = player wins, negative = dealer wins.
+ */
+export function computeStreak(history) {
+  if (history.length === 0) return 0;
+  const last = history[history.length - 1].result;
+  let streak = last === "A" ? 1 : last === "B" ? -1 : 0;
+  for (let i = history.length - 2; i >= 0; i--) {
+    if (history[i].result === last) {
+      streak += last === "A" ? 1 : last === "B" ? -1 : 0;
+    } else {
+      break;
+    }
+  }
+  return streak;
+}
+
+/**
+ * Compute fatigue: rounds spent with |trendSlow| > 0.4.
+ * Works from history array.
+ */
+export function computeFatigue(history) {
+  let fatigue = 0;
+  let state = {};
+  for (const h of history) {
+    state = updateEngine(state, h.result);
+    if (Math.abs(state.trendSlow) > 0.4) {
+      fatigue++;
+    } else {
+      fatigue = 0;
+    }
+  }
+  return fatigue;
+}
+
+/**
+ * Compute win/loss/tie statistics from history.
+ */
+export function computeStats(history) {
+  const total = history.length;
+  const aWins = history.filter((h) => h.result === "A").length;
+  const bWins = history.filter((h) => h.result === "B").length;
+  const ties = history.filter((h) => h.result !== "A" && h.result !== "B").length;
+  const aPct = total > 0 ? Math.round((aWins / total) * 100) : 0;
+  const bPct = total > 0 ? Math.round((bWins / total) * 100) : 0;
+  const tiePct = total > 0 ? Math.round((ties / total) * 100) : 0;
+  return { total, aWins, bWins, ties, aPct, bPct, tiePct };
+}
+
+/**
+ * Classify trend into a zone label.
+ */
+export function classifyTrend(trend) {
+  const absT = Math.abs(trend);
+  if (absT > 0.7) return trend > 0 ? "Player Over-Saturation" : "Dealer Over-Saturation";
+  if (absT > 0.4) return trend > 0 ? "Player Dominance" : "Dealer Dominance";
+  if (absT > 0.15) return trend > 0 ? "Player Leaning" : "Dealer Leaning";
+  return "Neutral / Choppy";
+}
+
+/**
+ * Short zone label for tables and charts.
+ */
+export function classifyTrendShort(trend) {
+  const absT = Math.abs(trend);
+  if (absT > 0.7) return trend > 0 ? "P Over-Sat" : "D Over-Sat";
+  if (absT > 0.4) return trend > 0 ? "P Dominance" : "D Dominance";
+  if (absT > 0.15) return trend > 0 ? "P Leaning" : "D Leaning";
+  return "Neutral";
+}
+
+/**
+ * Risk level from reversal probability.
+ */
+export function riskLevel(reversalProb) {
+  if (reversalProb >= 60) return "High";
+  if (reversalProb >= 30) return "Moderate";
+  return "Low";
+}
+
+/**
+ * Human-readable momentum label.
+ */
+export function momentumLabel(momentum) {
+  const absM = Math.abs(momentum);
+  if (absM < 0.05) return "Stable";
+  if (absM < 0.15) return momentum > 0 ? "Slight ↑" : "Slight ↓";
+  if (absM < 0.3) return momentum > 0 ? "Building ↑" : "Building ↓";
+  return momentum > 0 ? "Strong ↑" : "Strong ↓";
+}
+
 // ── Utility ───────────────────────────────────────────────────────────
 
 function clamp(v, min = -1, max = 1) {

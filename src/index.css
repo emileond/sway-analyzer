@@ -31,3 +31,17 @@
 .animate-needle-glow {
   animation: needle-glow 2s ease-in-out infinite;
 }
+
+/* Card count tint classes */
+.count-pos {
+  --tw-ring-color: oklch(0.65 0.19 145 / 0.4);
+  background-color: oklch(0.65 0.19 145 / 0.08);
+}
+.count-neg {
+  --tw-ring-color: oklch(0.58 0.22 25 / 0.4);
+  background-color: oklch(0.58 0.22 25 / 0.08);
+}
+.count-neutral {
+  --tw-ring-color: oklch(0.65 0.04 260 / 0.3);
+  background-color: oklch(0.65 0.04 260 / 0.03);
+}

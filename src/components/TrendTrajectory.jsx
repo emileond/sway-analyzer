@@ -1,10 +1,5 @@
 /**
- * TrendTrajectory – HeroUI Pro AreaChart with split-colour zones.
- *
- * Positive trend values are always rendered in green, negative in red.
- * This is achieved by feeding two separate data keys into recharts:
- *   - trendPositive: max(0, trend) — green area
- *   - trendNegative: min(0, trend) — red area
+ * TrendTrajectory – AreaChart with split-colour zones for blackjack.
  */
 import {
   AreaChartRoot,
@@ -18,9 +13,9 @@ import { Card } from "@heroui/react";
 import { classifyTrendShort } from "../lib/trendEngine";
 
 const resultLabel = (r) => {
-  if (r === "A") return "Player A Win";
-  if (r === "B") return "Player B Win";
-  return "Tie";
+  if (r === "A") return "Player Win";
+  if (r === "B") return "Dealer Win";
+  return "Push";
 };
 
 const resultColorClass = (r) => {
@@ -40,6 +35,7 @@ export default function TrendTrajectory({ history }) {
       trendPositive: Math.max(0, t),
       trendNegative: Math.min(0, t),
       trend: t,
+      trueCount: d.trueCount ?? 0,
       zone: classifyTrendShort(t),
     };
   });
@@ -50,8 +46,8 @@ export default function TrendTrajectory({ history }) {
         <Card.Title className="text-sm">Trend Trajectory</Card.Title>
         <Card.Description className="text-xs">
           EWMA trend per round —{" "}
-          <span className="text-success font-medium">green</span> = Player A,{" "}
-          <span className="text-danger font-medium">red</span> = Player B
+          <span className="text-success font-medium">green</span> = Player winning,{" "}
+          <span className="text-danger font-medium">red</span> = Dealer winning
         </Card.Description>
       </Card.Header>
       <Card.Content>
@@ -97,6 +93,7 @@ export default function TrendTrajectory({ history }) {
               const row = payload[0]?.payload;
               const v = Number(row?.trend ?? 0);
               const r = row?.result;
+              const tc = row?.trueCount ?? 0;
               const zone = classifyTrendShort(v);
               return (
                 <div className="rounded-xl border border-border bg-popover px-3 py-2.5 shadow-lg text-xs">
@@ -111,13 +108,18 @@ export default function TrendTrajectory({ history }) {
                         {v >= 0 ? "+" : ""}{v.toFixed(3)}
                       </span>
                     </p>
+                    <p>
+                      True Count:{" "}
+                      <span className="font-mono">
+                        {tc >= 0 ? "+" : ""}{tc}
+                      </span>
+                    </p>
                     <p className="text-muted">{zone}</p>
                   </div>
                 </div>
               );
             }}
           />
-          {/* Green area for positive values */}
           <Area
             dataKey="trendPositive"
             type="monotone"
@@ -132,7 +134,6 @@ export default function TrendTrajectory({ history }) {
               fill: "var(--color-background, #fff)",
             }}
           />
-          {/* Red area for negative values */}
           <Area
             dataKey="trendNegative"
             type="monotone"

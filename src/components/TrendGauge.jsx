@@ -1,12 +1,6 @@
 /**
- * TrendGauge – Bipolar SVG gauge with clear player advantage indication.
- *
- * Features:
- *   - Colour-coded zone arcs (neutral / dominance / over-saturation)
- *   - Animated needle with smooth easing
- *   - Prominent player labels with leading indicator
- *   - Zone labels on the arc ends
- *   - Background glow on the leading player's side
+ * TrendGauge – Bipolar SVG gauge showing player vs dealer advantage.
+ * Repurposed for blackjack: left = dealer advantage, right = player advantage.
  */
 import { Chip } from "@heroui/react";
 import { classifyTrend } from "../lib/trendEngine";
@@ -16,7 +10,7 @@ export default function TrendGauge({ trend }) {
   const absT = Math.abs(trend);
   const zone = classifyTrend(trend);
 
-  // Needle colour: interpolate red (B) → gray → green (A)
+  // Needle colour: interpolate red (dealer) → gray → green (player)
   const pct = (trend + 1) / 2;
   const r = Math.round(180 + (34 - 180) * pct);
   const g = Math.round(55 + (165 - 55) * pct);
@@ -25,22 +19,20 @@ export default function TrendGauge({ trend }) {
 
   const tickValues = [-1, -0.75, -0.5, -0.25, 0, 0.25, 0.5, 0.75, 1];
 
-  // Leading indicator
   const leading =
     absT <= 0.4
       ? null
       : trend > 0
-        ? "A"
-        : "B";
+        ? "Player"
+        : "Dealer";
 
-  const leadingColor = leading === "A" ? "success" : "danger";
+  const leadingColor = leading === "Player" ? "success" : "danger";
 
   return (
     <div className="flex flex-col items-center gap-3">
       <svg viewBox="-140 -120 280 155" className="w-full max-w-lg">
         <defs>
-          {/* Glow filter for leading side */}
-          <filter id="glow-a" x="-50%" y="-50%" width="200%" height="200%">
+          <filter id="glow-player" x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur stdDeviation="8" result="blur" />
             <feFlood floodColor="rgb(34,165,70)" floodOpacity="0.25" />
             <feComposite in2="blur" operator="in" />
@@ -49,7 +41,7 @@ export default function TrendGauge({ trend }) {
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
-          <filter id="glow-b" x="-50%" y="-50%" width="200%" height="200%">
+          <filter id="glow-dealer" x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur stdDeviation="8" result="blur" />
             <feFlood floodColor="rgb(200,50,50)" floodOpacity="0.25" />
             <feComposite in2="blur" operator="in" />
@@ -60,34 +52,34 @@ export default function TrendGauge({ trend }) {
           </filter>
         </defs>
 
-        {/* Background glow when a player is leading */}
-        {leading === "A" && (
+        {/* Background glow */}
+        {leading === "Player" && (
           <path
             d={arcPath(-36, 90, 90)}
             fill="none"
             stroke="rgb(34,165,70)"
             strokeWidth="14"
             opacity="0.12"
-            filter="url(#glow-a)"
+            filter="url(#glow-player)"
           />
         )}
-        {leading === "B" && (
+        {leading === "Dealer" && (
           <path
             d={arcPath(-90, 36, 90)}
             fill="none"
             stroke="rgb(200,50,50)"
             strokeWidth="14"
             opacity="0.12"
-            filter="url(#glow-b)"
+            filter="url(#glow-dealer)"
           />
         )}
 
         {/* Zone arcs */}
-        <ArcSegment from={-90} to={-67.5} r={90} stroke="rgb(180,40,40)" label="Over-Sat" />
+        <ArcSegment from={-90} to={-67.5} r={90} stroke="rgb(180,40,40)" label="Edge" />
         <ArcSegment from={-67.5} to={-36} r={90} stroke="rgb(210,130,40)" />
         <ArcSegment from={-36} to={36} r={90} stroke="rgb(130,150,165)" opacity={0.3} />
         <ArcSegment from={36} to={67.5} r={90} stroke="rgb(210,130,40)" />
-        <ArcSegment from={67.5} to={90} r={90} stroke="rgb(34,155,65)" label="Over-Sat" />
+        <ArcSegment from={67.5} to={90} r={90} stroke="rgb(34,155,65)" label="Edge" />
 
         {/* Tick marks + labels */}
         {tickValues.map((v) => {
@@ -115,7 +107,7 @@ export default function TrendGauge({ trend }) {
                   fill="currentColor"
                   opacity={0.5}
                 >
-                  {v === 1 ? "A" : v === -1 ? "B" : v.toFixed(1)}
+                  {v === 1 ? "P" : v === -1 ? "D" : v.toFixed(1)}
                 </text>
               )}
             </g>
@@ -135,27 +127,26 @@ export default function TrendGauge({ trend }) {
         <circle cx="0" cy="0" r="6" fill={needleColor} />
         <circle cx="0" cy="0" r="3" fill="var(--color-background, #fff)" />
 
-        {/* Player labels */}
+        {/* Labels */}
         <text
           x="-122" y="14"
           textAnchor="middle"
           className="text-[14px] font-bold"
-          fill={leading === "B" ? "rgb(200,50,50)" : "rgb(160,80,80)"}
-          opacity={leading === "B" ? 1 : 0.5}
+          fill={leading === "Dealer" ? "rgb(200,50,50)" : "rgb(160,80,80)"}
+          opacity={leading === "Dealer" ? 1 : 0.5}
         >
-          Player B
+          Dealer
         </text>
         <text
           x="122" y="14"
           textAnchor="middle"
           className="text-[14px] font-bold"
-          fill={leading === "A" ? "rgb(34,165,70)" : "rgb(80,140,90)"}
-          opacity={leading === "A" ? 1 : 0.5}
+          fill={leading === "Player" ? "rgb(34,165,70)" : "rgb(80,140,90)"}
+          opacity={leading === "Player" ? 1 : 0.5}
         >
-          Player A
+          Player
         </text>
 
-        {/* Centre zero label */}
         <text
           x="0" y="-100"
           textAnchor="middle"
@@ -171,7 +162,7 @@ export default function TrendGauge({ trend }) {
       <div className="flex items-center gap-2">
         {leading ? (
           <Chip color={leadingColor} variant="primary" size="sm">
-            Player {leading} leading — {zone}
+            {leading} trend — {zone}
           </Chip>
         ) : (
           <Chip color="default" variant="soft" size="sm">

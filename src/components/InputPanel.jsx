@@ -1,10 +1,9 @@
 /**
- * InputPanel – Score buttons.
- * Compact mode: all 3 buttons in a single horizontal row.
+ * InputPanel – Round result buttons for blackjack (Win / Loss / Push).
  */
 import { Button } from "@heroui/react";
 
-export default function InputPanel({ onScore, compact = false }) {
+export default function InputPanel({ onResult, compact = false }) {
   if (compact) {
     return (
       <div className="flex items-center gap-1.5">
@@ -12,25 +11,25 @@ export default function InputPanel({ onScore, compact = false }) {
           variant="primary"
           size="sm"
           className="h-7 px-3 text-xs font-semibold"
-          onPress={() => onScore("A")}
+          onPress={() => onResult("A")}
         >
-          A +
+          Win
         </Button>
         <Button
           variant="secondary"
           size="sm"
           className="h-7 px-3 text-xs"
-          onPress={() => onScore("Tie")}
+          onPress={() => onResult("Tie")}
         >
-          Tie
+          Push
         </Button>
         <Button
           variant="danger"
           size="sm"
           className="h-7 px-3 text-xs font-semibold"
-          onPress={() => onScore("B")}
+          onPress={() => onResult("B")}
         >
-          B +
+          Loss
         </Button>
       </div>
     );
@@ -42,24 +41,24 @@ export default function InputPanel({ onScore, compact = false }) {
         <Button
           variant="primary"
           className="flex-1 h-14 text-base font-semibold"
-          onPress={() => onScore("A")}
+          onPress={() => onResult("A")}
         >
-          A Wins
+          Win
         </Button>
         <Button
           variant="danger"
           className="flex-1 h-14 text-base font-semibold"
-          onPress={() => onScore("B")}
+          onPress={() => onResult("B")}
         >
-          B Wins
+          Loss
         </Button>
       </div>
       <Button
         variant="secondary"
         className="w-full"
-        onPress={() => onScore("Tie")}
+        onPress={() => onResult("Tie")}
       >
-        Tie / Empate
+        Push
       </Button>
     </div>
   );

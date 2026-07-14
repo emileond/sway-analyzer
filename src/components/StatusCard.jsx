@@ -1,5 +1,5 @@
 /**
- * StatusCard – Trend Analysis with icons and (?) help popovers.
+ * StatusCard – Trend analysis combined with card count context.
  */
 import { Card, Chip, Tooltip } from "@heroui/react";
 import {
@@ -15,6 +15,7 @@ export default function StatusCard({
   fatigue,
   reversalProb,
   roundCount,
+  trueCount,
 }) {
   const zone = classifyTrend(trend);
   const risk = riskLevel(reversalProb);
@@ -25,6 +26,9 @@ export default function StatusCard({
     Moderate: "warning",
     High: "danger",
   };
+
+  // Contextual insight based on count + trend
+  const countInsight = getCountInsight(trueCount, trend, risk);
 
   return (
     <Card className="gap-4">
@@ -78,21 +82,36 @@ export default function StatusCard({
             icon={<ZapIcon />}
             label="Momentum"
             value={mLabel}
-            tip="Rate of change of the trend. Positive means acceleration toward Player A, negative toward Player B. Near-zero means the trend is stable."
+            tip="Rate of change of the trend. Positive means acceleration toward Player wins, negative toward Dealer wins."
           />
           <Metric
             icon={<WaveIcon />}
-            label="Volatility (σ²)"
+            label="Volatility"
             value={volatility.toFixed(4)}
-            tip="EWMA of squared trend changes. Higher values indicate an unstable trend that is more likely to reverse."
+            tip="EWMA of squared trend changes. Higher values indicate an unstable trend."
           />
           <Metric
             icon={<ClockIcon />}
             label="Fatigue"
             value={`${fatigue} rounds`}
-            tip="Number of consecutive rounds the trend has stayed above the dominance threshold (|T| > 0.4). Longer streaks increase reversal pressure."
+            tip="Consecutive rounds the trend has stayed above the dominance threshold (|T| > 0.4)."
           />
         </div>
+
+        {/* Count + Trend Insight */}
+        {countInsight && (
+          <div
+            className={`rounded-lg border px-4 py-3 text-sm font-medium ${
+              countInsight.type === "opportunity"
+                ? "border-success/30 bg-success/10 text-success"
+                : countInsight.type === "caution"
+                  ? "border-warning/30 bg-warning/10 text-warning"
+                  : "border-border/30 bg-surface-secondary/30 text-muted"
+            }`}
+          >
+            {countInsight.label}
+          </div>
+        )}
 
         {/* Active alert */}
         {risk === "High" && roundCount > 0 && (
@@ -107,15 +126,39 @@ export default function StatusCard({
             Moderate pressure — trend approaching a potential pivot zone.
           </div>
         )}
-
-        {risk === "Low" && roundCount > 0 && (
-          <div className="rounded-lg border border-success/20 bg-success/5 px-4 py-3 text-sm text-success/80">
-            Game is balanced — no significant directional momentum.
-          </div>
-        )}
       </Card.Content>
     </Card>
   );
+}
+
+function getCountInsight(trueCount, trend, risk) {
+  const tc = trueCount ?? 0;
+
+  if (tc >= 3 && trend < -0.3) {
+    return {
+      type: "opportunity",
+      label: `Strong count (+${tc}) suggests dealer advantage streak may reverse. Consider increasing bets.`,
+    };
+  }
+  if (tc <= -2 && trend > 0.3) {
+    return {
+      type: "caution",
+      label: `Negative count (${tc}) while trend favors player. House edge is elevated — keep minimum bets.`,
+    };
+  }
+  if (tc >= 4) {
+    return {
+      type: "opportunity",
+      label: `High true count (+${tc}). Player edge ~${((tc * 0.5 - 0.5)).toFixed(1)}%. Maximum bet recommended.`,
+    };
+  }
+  if (risk === "High" && tc >= 2) {
+    return {
+      type: "caution",
+      label: `Trend exhaustion at positive count. Reversion likely but count still favors you.`,
+    };
+  }
+  return null;
 }
 
 function Metric({ icon, label, value, color = "", tip }) {

@@ -1,5 +1,5 @@
 /**
- * HistoryTable – Round log with "Load More" button.
+ * HistoryTable – Round log with count data and "Load More" button.
  */
 import { useState } from "react";
 import { Button, Card, Chip } from "@heroui/react";
@@ -11,15 +11,14 @@ const LOAD_MORE_ROWS = 10;
 export default function HistoryTable({ history }) {
   const [visibleCount, setVisibleCount] = useState(INITIAL_ROWS);
 
-  // Most recent first
   const sorted = [...history].reverse();
   const visibleRows = sorted.slice(0, visibleCount);
   const hasMore = visibleCount < sorted.length;
 
   const resultLabel = (r) => {
-    if (r === "A") return "A Win";
-    if (r === "B") return "B Win";
-    return "Tie";
+    if (r === "A") return "Win";
+    if (r === "B") return "Loss";
+    return "Push";
   };
 
   const resultColor = (r) => {
@@ -34,7 +33,7 @@ export default function HistoryTable({ history }) {
         <Card.Title>Round History</Card.Title>
         {history.length === 0 && (
           <Card.Description>
-            No rounds played yet. Click a button above to start.
+            No rounds played yet. Deal cards and log a result to start.
           </Card.Description>
         )}
         {history.length > 0 && (
@@ -52,19 +51,13 @@ export default function HistoryTable({ history }) {
                 <th className="px-4 py-2">#</th>
                 <th className="px-4 py-2">Result</th>
                 <th className="px-4 py-2 text-right">Trend (T)</th>
-                <th className="px-4 py-2 text-right">ΔT</th>
+                <th className="px-4 py-2 text-right">TC</th>
+                <th className="px-4 py-2 text-right">RC</th>
                 <th className="px-4 py-2">Zone</th>
               </tr>
             </thead>
             <tbody>
-              {visibleRows.map((row, idx) => {
-                const globalIdx = idx;
-                const prevTrend =
-                  globalIdx < sorted.length - 1
-                    ? sorted[globalIdx + 1]?.trend
-                    : 0;
-                const delta = row.trend - (prevTrend ?? 0);
-
+              {visibleRows.map((row) => {
                 return (
                   <tr
                     key={row.round}
@@ -87,17 +80,25 @@ export default function HistoryTable({ history }) {
                       {row.trend.toFixed(3)}
                     </td>
                     <td className="px-4 py-2 text-right tabular-nums font-mono text-xs">
-                      <span
-                        className={
-                          delta > 0
-                            ? "text-success"
-                            : delta < 0
-                              ? "text-danger"
-                              : "text-muted"
-                        }
-                      >
-                        {delta >= 0 ? "+" : ""}
-                        {delta.toFixed(3)}
+                      <span className={
+                        (row.trueCount ?? 0) > 0
+                          ? "text-success"
+                          : (row.trueCount ?? 0) < 0
+                            ? "text-danger"
+                            : "text-muted"
+                      }>
+                        {(row.trueCount ?? 0) >= 0 ? "+" : ""}{row.trueCount ?? 0}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-right tabular-nums font-mono text-xs">
+                      <span className={
+                        (row.runningCount ?? 0) > 0
+                          ? "text-success"
+                          : (row.runningCount ?? 0) < 0
+                            ? "text-danger"
+                            : "text-muted"
+                      }>
+                        {(row.runningCount ?? 0) >= 0 ? "+" : ""}{row.runningCount ?? 0}
                       </span>
                     </td>
                     <td className="px-4 py-2 text-xs">
