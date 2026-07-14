@@ -10,8 +10,7 @@ import {
   encodeResult,
 } from "./lib/trendEngine";
 import ControlPanel from "./components/ControlPanel";
-import InputPanel from "./components/InputPanel";
-import ScoreCard from "./components/ScoreCard";
+import StickyScoreBar from "./components/StickyScoreBar";
 import TrendGauge from "./components/TrendGauge";
 import StatusCard from "./components/StatusCard";
 import TrendTrajectory from "./components/TrendTrajectory";
@@ -100,18 +99,8 @@ function App() {
           </Popover>
         </header>
 
-        {/* ── Scoreboard + Input ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4">
-          <ScoreCard history={history} />
-          <Card className="gap-3 lg:w-52">
-            <Card.Header className="pb-0">
-              <Card.Title className="text-xs">Log Round</Card.Title>
-            </Card.Header>
-            <Card.Content className="pt-0">
-              <InputPanel onScore={handleScore} />
-            </Card.Content>
-          </Card>
-        </div>
+        {/* ── Scoreboard + Input (sticky) ── */}
+        <StickyScoreBar history={history} onScore={handleScore} />
 
         {/* ── Gauge + Status ── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

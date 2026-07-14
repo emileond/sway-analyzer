@@ -1,20 +1,20 @@
 /**
- * HistoryTable – Chronological round log with pagination and trend delta.
+ * HistoryTable – Round log with "Load More" button.
  */
 import { useState } from "react";
-import { Card, Pagination, Chip } from "@heroui/react";
+import { Button, Card, Chip } from "@heroui/react";
 import { classifyTrendShort } from "../lib/trendEngine";
 
-const ROWS_PER_PAGE = 10;
+const INITIAL_ROWS = 10;
+const LOAD_MORE_ROWS = 10;
 
 export default function HistoryTable({ history }) {
-  const [page, setPage] = useState(1);
+  const [visibleCount, setVisibleCount] = useState(INITIAL_ROWS);
 
+  // Most recent first
   const sorted = [...history].reverse();
-  const totalPages = Math.max(1, Math.ceil(sorted.length / ROWS_PER_PAGE));
-  const safePage = Math.min(page, totalPages);
-  const start = (safePage - 1) * ROWS_PER_PAGE;
-  const pageRows = sorted.slice(start, start + ROWS_PER_PAGE);
+  const visibleRows = sorted.slice(0, visibleCount);
+  const hasMore = visibleCount < sorted.length;
 
   const resultLabel = (r) => {
     if (r === "A") return "A Win";
@@ -37,6 +37,11 @@ export default function HistoryTable({ history }) {
             No rounds played yet. Click a button above to start.
           </Card.Description>
         )}
+        {history.length > 0 && (
+          <Card.Description>
+            Showing {visibleRows.length} of {sorted.length} rounds
+          </Card.Description>
+        )}
       </Card.Header>
 
       {history.length > 0 && (
@@ -52,9 +57,12 @@ export default function HistoryTable({ history }) {
               </tr>
             </thead>
             <tbody>
-              {pageRows.map((row, idx) => {
-                const globalIdx = start + idx;
-                const prevTrend = globalIdx < sorted.length - 1 ? sorted[globalIdx + 1]?.trend : 0;
+              {visibleRows.map((row, idx) => {
+                const globalIdx = idx;
+                const prevTrend =
+                  globalIdx < sorted.length - 1
+                    ? sorted[globalIdx + 1]?.trend
+                    : 0;
                 const delta = row.trend - (prevTrend ?? 0);
 
                 return (
@@ -66,7 +74,11 @@ export default function HistoryTable({ history }) {
                       {row.round}
                     </td>
                     <td className="px-4 py-2">
-                      <Chip color={resultColor(row.result)} size="sm" variant="soft">
+                      <Chip
+                        color={resultColor(row.result)}
+                        size="sm"
+                        variant="soft"
+                      >
                         {resultLabel(row.result)}
                       </Chip>
                     </td>
@@ -75,7 +87,15 @@ export default function HistoryTable({ history }) {
                       {row.trend.toFixed(3)}
                     </td>
                     <td className="px-4 py-2 text-right tabular-nums font-mono text-xs">
-                      <span className={delta > 0 ? "text-success" : delta < 0 ? "text-danger" : "text-muted"}>
+                      <span
+                        className={
+                          delta > 0
+                            ? "text-success"
+                            : delta < 0
+                              ? "text-danger"
+                              : "text-muted"
+                        }
+                      >
                         {delta >= 0 ? "+" : ""}
                         {delta.toFixed(3)}
                       </span>
@@ -91,9 +111,14 @@ export default function HistoryTable({ history }) {
         </div>
       )}
 
-      {totalPages > 1 && (
+      {hasMore && (
         <div className="flex justify-center px-4 py-3">
-          <Pagination page={safePage} total={totalPages} onChange={setPage} />
+          <Button
+            variant="secondary"
+            onPress={() => setVisibleCount((c) => c + LOAD_MORE_ROWS)}
+          >
+            Load More ({sorted.length - visibleCount} remaining)
+          </Button>
         </div>
       )}
     </Card>

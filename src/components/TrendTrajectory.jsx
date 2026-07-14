@@ -1,45 +1,57 @@
 /**
- * TrendTrajectory – HeroUI Pro AreaChart showing the EWMA trend over rounds.
+ * TrendTrajectory – HeroUI Pro AreaChart with split-colour zones.
  *
- * Uses @heroui-pro/react AreaChart with recharts primitives for:
- *   - Interactive tooltips with ChartTooltipContent
- *   - Proper axis labels
- *   - Grid lines
- *   - Smooth monotone curves
- *   - Gradient fill under the line
+ * Positive trend values are always rendered in green, negative in red.
+ * This is achieved by feeding two separate data keys into recharts:
+ *   - trendPositive: max(0, trend) — green area
+ *   - trendNegative: min(0, trend) — red area
  */
 import {
   AreaChartRoot,
-  AreaChartArea,
   AreaChartGrid,
   AreaChartTooltip,
   AreaChartXAxis,
   AreaChartYAxis,
-  AreaChartTooltipContent,
 } from "@heroui-pro/react";
+import { Area } from "recharts";
 import { Card } from "@heroui/react";
 import { classifyTrendShort } from "../lib/trendEngine";
+
+const resultLabel = (r) => {
+  if (r === "A") return "Player A Win";
+  if (r === "B") return "Player B Win";
+  return "Tie";
+};
+
+const resultColorClass = (r) => {
+  if (r === "A") return "text-success";
+  if (r === "B") return "text-danger";
+  return "text-muted";
+};
 
 export default function TrendTrajectory({ history }) {
   if (history.length === 0) return null;
 
-  // Build recharts-compatible data
-  const data = history.map((d) => ({
-    round: d.round,
-    trend: +d.trend.toFixed(3),
-    zone: classifyTrendShort(d.trend),
-  }));
-
-  const lastTrend = history[history.length - 1].trend;
-  const lineColor = lastTrend >= 0 ? "rgb(34,165,70)" : "rgb(200,50,50)";
-  const fillColor = lastTrend >= 0 ? "rgba(34,165,70,0.2)" : "rgba(200,50,50,0.2)";
+  const data = history.map((d) => {
+    const t = +d.trend.toFixed(3);
+    return {
+      round: d.round,
+      result: d.result,
+      trendPositive: Math.max(0, t),
+      trendNegative: Math.min(0, t),
+      trend: t,
+      zone: classifyTrendShort(t),
+    };
+  });
 
   return (
     <Card className="gap-3">
       <Card.Header>
         <Card.Title className="text-sm">Trend Trajectory</Card.Title>
         <Card.Description className="text-xs">
-          EWMA trend value per round — hover for details
+          EWMA trend per round —{" "}
+          <span className="text-success font-medium">green</span> = Player A,{" "}
+          <span className="text-danger font-medium">red</span> = Player B
         </Card.Description>
       </Card.Header>
       <Card.Content>
@@ -80,27 +92,57 @@ export default function TrendTrajectory({ history }) {
             }}
           />
           <AreaChartTooltip
-            content={
-              <AreaChartTooltipContent
-                labelFormatter={(label) => `Round #${label}`}
-                valueFormatter={(value) => {
-                  const v = Number(value);
-                  const zone = classifyTrendShort(v);
-                  return `${v >= 0 ? "+" : ""}${v.toFixed(3)} — ${zone}`;
-                }}
-              />
-            }
+            content={({ active, payload, label }) => {
+              if (!active || !payload?.length) return null;
+              const row = payload[0]?.payload;
+              const v = Number(row?.trend ?? 0);
+              const r = row?.result;
+              const zone = classifyTrendShort(v);
+              return (
+                <div className="rounded-xl border border-border bg-popover px-3 py-2.5 shadow-lg text-xs">
+                  <p className="font-semibold mb-1.5">Round #{label}</p>
+                  <div className="flex flex-col gap-1">
+                    <p className={resultColorClass(r)}>
+                      {resultLabel(r)}
+                    </p>
+                    <p>
+                      Trend:{" "}
+                      <span className="font-mono">
+                        {v >= 0 ? "+" : ""}{v.toFixed(3)}
+                      </span>
+                    </p>
+                    <p className="text-muted">{zone}</p>
+                  </div>
+                </div>
+              );
+            }}
           />
-          <AreaChartArea
-            dataKey="trend"
+          {/* Green area for positive values */}
+          <Area
+            dataKey="trendPositive"
             type="monotone"
-            stroke={lineColor}
-            strokeWidth={2.5}
-            fill={fillColor}
+            stroke="rgb(34,165,70)"
+            strokeWidth={2}
+            fill="rgba(34,165,70,0.18)"
             dot={false}
             activeDot={{
               r: 5,
-              stroke: lineColor,
+              stroke: "rgb(34,165,70)",
+              strokeWidth: 2,
+              fill: "var(--color-background, #fff)",
+            }}
+          />
+          {/* Red area for negative values */}
+          <Area
+            dataKey="trendNegative"
+            type="monotone"
+            stroke="rgb(200,50,50)"
+            strokeWidth={2}
+            fill="rgba(200,50,50,0.18)"
+            dot={false}
+            activeDot={{
+              r: 5,
+              stroke: "rgb(200,50,50)",
               strokeWidth: 2,
               fill: "var(--color-background, #fff)",
             }}

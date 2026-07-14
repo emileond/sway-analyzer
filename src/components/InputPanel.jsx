@@ -1,13 +1,43 @@
 /**
- * InputPanel – Score buttons redesigned to sit alongside the ScoreCard.
- * Large primary/danger buttons for A and B, smaller tie button below.
+ * InputPanel – Score buttons.
+ * Compact mode: all 3 buttons in a single horizontal row.
  */
 import { Button } from "@heroui/react";
 
-export default function InputPanel({ onScore }) {
+export default function InputPanel({ onScore, compact = false }) {
+  if (compact) {
+    return (
+      <div className="flex items-center gap-1.5">
+        <Button
+          variant="primary"
+          size="sm"
+          className="h-7 px-3 text-xs font-semibold"
+          onPress={() => onScore("A")}
+        >
+          A +
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          className="h-7 px-3 text-xs"
+          onPress={() => onScore("Tie")}
+        >
+          Tie
+        </Button>
+        <Button
+          variant="danger"
+          size="sm"
+          className="h-7 px-3 text-xs font-semibold"
+          onPress={() => onScore("B")}
+        >
+          B +
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-2 w-full">
-      {/* A and B side by side */}
       <div className="flex gap-2">
         <Button
           variant="primary"
@@ -24,7 +54,6 @@ export default function InputPanel({ onScore }) {
           B Wins
         </Button>
       </div>
-      {/* Tie across full width */}
       <Button
         variant="secondary"
         className="w-full"

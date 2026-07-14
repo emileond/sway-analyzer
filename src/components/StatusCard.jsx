@@ -1,8 +1,7 @@
 /**
- * StatusCard – Live trend display with multi-metric readout,
- * composite reversal probability, and contextual alerts.
+ * StatusCard – Trend Analysis with icons and (?) help popovers.
  */
-import { Card, Chip } from "@heroui/react";
+import { Card, Chip, Tooltip } from "@heroui/react";
 import {
   classifyTrend,
   riskLevel,
@@ -52,18 +51,47 @@ export default function StatusCard({
 
         {/* Zone */}
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted uppercase tracking-wide">Zone</span>
-          <Chip size="sm" variant="soft">{zone}</Chip>
+          <span className="text-xs text-muted uppercase tracking-wide">
+            Zone
+          </span>
+          <Chip size="sm" variant="soft">
+            {zone}
+          </Chip>
         </div>
 
         {/* Metrics grid */}
         <div className="grid grid-cols-2 gap-3 text-sm">
-          <Metric label="Reversal P" value={`${reversalProb}%`} color={
-            reversalProb >= 60 ? "text-danger" : reversalProb >= 30 ? "text-warning" : "text-success"
-          } />
-          <Metric label="Momentum" value={mLabel} />
-          <Metric label="Volatility (σ²)" value={volatility.toFixed(4)} />
-          <Metric label="Fatigue" value={`${fatigue} rounds`} />
+          <Metric
+            icon={<GaugeIcon />}
+            label="Reversal P"
+            value={`${reversalProb}%`}
+            color={
+              reversalProb >= 60
+                ? "text-danger"
+                : reversalProb >= 30
+                  ? "text-warning"
+                  : "text-success"
+            }
+            tip="Composite probability (0–100%) that the current trend will reverse, combining saturation, streak fatigue, momentum opposition, and volatility."
+          />
+          <Metric
+            icon={<ZapIcon />}
+            label="Momentum"
+            value={mLabel}
+            tip="Rate of change of the trend. Positive means acceleration toward Player A, negative toward Player B. Near-zero means the trend is stable."
+          />
+          <Metric
+            icon={<WaveIcon />}
+            label="Volatility (σ²)"
+            value={volatility.toFixed(4)}
+            tip="EWMA of squared trend changes. Higher values indicate an unstable trend that is more likely to reverse."
+          />
+          <Metric
+            icon={<ClockIcon />}
+            label="Fatigue"
+            value={`${fatigue} rounds`}
+            tip="Number of consecutive rounds the trend has stayed above the dominance threshold (|T| > 0.4). Longer streaks increase reversal pressure."
+          />
         </div>
 
         {/* Active alert */}
@@ -90,11 +118,70 @@ export default function StatusCard({
   );
 }
 
-function Metric({ label, value, color = "" }) {
+function Metric({ icon, label, value, color = "", tip }) {
   return (
-    <div className="flex flex-col gap-0.5 rounded-md bg-surface-secondary/50 px-3 py-2">
-      <span className="text-[10px] uppercase tracking-wider text-muted">{label}</span>
-      <span className={`text-sm font-semibold tabular-nums ${color}`}>{value}</span>
+    <div className="flex flex-col gap-1 rounded-md bg-surface-secondary/50 px-3 py-2">
+      <div className="flex items-center gap-1.5">
+        <span className="text-muted [&>svg]:size-3">{icon}</span>
+        <span className="text-[10px] uppercase tracking-wider text-muted">
+          {label}
+        </span>
+        {tip && (
+          <Tooltip delay={0}>
+            <span className="ml-auto cursor-help text-muted hover:text-foreground transition-colors">
+              <HelpIcon />
+            </span>
+            <Tooltip.Content className="max-w-64 text-xs leading-relaxed" placement="top">
+              {tip}
+            </Tooltip.Content>
+          </Tooltip>
+        )}
+      </div>
+      <span className={`text-sm font-semibold tabular-nums ${color}`}>
+        {value}
+      </span>
     </div>
+  );
+}
+
+/* ── Inline SVG icons ── */
+
+function GaugeIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-3">
+      <path d="m12 14 4-4" /><path d="M3.34 19a10 10 0 1 1 17.32 0" />
+    </svg>
+  );
+}
+
+function ZapIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-3">
+      <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" />
+    </svg>
+  );
+}
+
+function WaveIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-3">
+      <path d="M2 12c1.5-3 3.5-3 5 0s3.5 3 5 0 3.5-3 5 0 3.5 3 5 0" />
+    </svg>
+  );
+}
+
+function ClockIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-3">
+      <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+    </svg>
+  );
+}
+
+function HelpIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-3">
+      <circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><path d="M12 17h.01" />
+    </svg>
   );
 }
